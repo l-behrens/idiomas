@@ -5,6 +5,8 @@ import json
 import termios
 import colorama
 import time
+import asyncio
+from aiogoogletrans import Translator
 from json import JSONDecodeError
 
 import logging
@@ -17,6 +19,7 @@ class Trainer(object):
         self.logger = logging.getLogger()
         f = ('%s/%s' % (os.path.dirname(__file__), args.f))
         self._frases = self.load_voc(f)
+        self._translator = Translator()
 
     def load_voc(self, f):
         try:
@@ -47,15 +50,32 @@ class Trainer(object):
             menu += txt2.format("new", "save new idiom")
             menu += txt2.format("open", "open different stack")
             menu += txt2.format("show", "show available stacks")
+            menu += txt.format("!Bangs! \t terminate with crtl+c:")
+            menu += txt2.format("!len", "translate following text to english")
+            menu += txt2.format("!les", "translate following text to spanish")
             menu += " {:*^78}\n".format('')
             print('%s' % menu)
 
             i = input(' >>> ')
 
-            if(i == 'start'):
+            if(i.startswith('!len ')):
+                print(self.look(i.strip('!len '), dest='en'))
+                try:
+                    time.sleep(10)
+                except KeyboardInterrupt as k:
+                    pass
+
+            if(i.startswith('!les ')):
+                print(self.look(i.strip('!les '), dest='es'))
+                try:
+                    time.sleep(10)
+                except KeyboardInterrupt as k:
+                    pass
+
+            elif(i == 'start'):
                 self.learn()
             elif(i == 'look'):
-                pass
+                self.look()
             elif(i == 'new'):
                 pass
             elif(i == 'open'):
@@ -65,6 +85,12 @@ class Trainer(object):
             else:
                 print('Unknown Mode')
                 time.sleep(0.5)
+
+    def look(self, term, dest='es'):
+        loop = asyncio.get_event_loop()
+        ret = loop.run_until_complete(self._translator.translate(term, dest=dest))
+        return(ret.text)
+
 
     def learn(self):
 
